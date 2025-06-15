@@ -57,7 +57,9 @@ const sendMessage = () => {
 }
 
 const conectar = () => {
-    connection = new WebSocket(host)
+    const uri = new URL(host)
+    uri.searchParams.append('username',username.value)
+    connection = new WebSocket(uri.toString())
     connection.onmessage = handleRecieveMessage
     step.value = Steps.Chat
 }

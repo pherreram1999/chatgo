@@ -1,8 +1,8 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
-	"log"
 )
 
 // Cliente gestiona la conexion con el cliente
@@ -24,7 +24,6 @@ func (c *Cliente) ReadMessages(hub *Hub) {
 		err := c.conn.ReadJSON(&message)
 		if err != nil {
 			// hubo una desconexion, salimos de la rutina
-			log.Println(err)
 			break // aqui se rompe el ciclo, cierra la conexion al salir de la funcion
 		}
 
@@ -43,6 +42,7 @@ func (c *Cliente) WriteMessages() {
 				// se ha cerrado el canal
 				return
 			}
+			fmt.Println("EL cliente envia el mensaje desde el broadcast: ", message)
 			if err := c.conn.WriteJSON(message); err != nil {
 				// error el escribir
 				return

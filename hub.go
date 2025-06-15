@@ -22,6 +22,10 @@ type Mensaje struct {
 	Cuerpo  string `json:"cuerpo"`
 }
 
+func (m *Mensaje) String() string {
+	return fmt.Sprintf("<Usuario: %s |Mensaje %s>", m.Usuario, m.Cuerpo)
+}
+
 // Hub se encarga de llevar el reigstro de clientes, ademas de los clientes registrados
 type Hub struct {
 	Clientes   map[*Cliente]bool
@@ -46,21 +50,23 @@ func (h *Hub) run() {
 		select {
 		case cliente := <-h.register:
 			h.mutex.Lock()
-			h.Clientes[cliente] = true // guardamos la direccion del cliente en meemoria
+			h.Clientes[cliente] = true // guardamos la direccion del cliente en memoria
 			h.mutex.Unlock()
-			message := fmt.Sprintf("Se ha conectado %s", cliente.Username)
 			// mensamos un mensaje a los demas que se conecto
+			message := fmt.Sprintf("Se ha conectado %s", cliente.Username)
+			fmt.Println(message)
 			h.Broadcast <- Mensaje{
 				Usuario: cliente.Username,
 				Cuerpo:  message,
 			}
+
 		case message := <-h.Broadcast:
 			for cliente := range h.Clientes {
 				select {
 				case cliente.Send <- message: // corroboramos si el cliente tiene espacio para el mensaje  y so lo pudo enviar
 				default: // de no ser el caso va por el siguiente caso
 					// se tiene que liberar la conexion
-					//⚠️ FALLA: Canal lleno o bloqueado
+					//FALLA: Canal lleno o bloqueado
 					close(cliente.Send)
 					h.mutex.Lock()
 					delete(h.Clientes, cliente) // quitamos del registro de cliente
@@ -93,7 +99,7 @@ func handleConnection(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	cliente := &Cliente{
 		Username: r.URL.Query().Get("username"),
 		conn:     conn,
-		Send:     make(chan Mensaje, 10),
+		Send:     make(chan Mensaje, 255),
 	}
 
 	hub.register <- cliente // guardamos el cliente en la tabla de direcciones
