@@ -24,17 +24,19 @@ type Mensaje struct {
 
 // Hub se encarga de llevar el reigstro de clientes, ademas de los clientes registrados
 type Hub struct {
-	Clientes  map[*Cliente]bool
-	register  chan *Cliente
-	Broadcast chan Mensaje
-	mutex     sync.RWMutex
+	Clientes   map[*Cliente]bool
+	register   chan *Cliente
+	unregister chan *Cliente
+	Broadcast  chan Mensaje
+	mutex      sync.RWMutex
 }
 
 func newHub() *Hub {
 	return &Hub{
-		Clientes:  make(map[*Cliente]bool),
-		register:  make(chan *Cliente),
-		Broadcast: make(chan Mensaje, 50),
+		Clientes:   make(map[*Cliente]bool),
+		register:   make(chan *Cliente),
+		unregister: make(chan *Cliente),
+		Broadcast:  make(chan Mensaje, 50),
 	}
 }
 
@@ -42,9 +44,6 @@ func newHub() *Hub {
 func (h *Hub) run() {
 	for {
 		select {
-		case msg := <-h.Broadcast:
-			fmt.Println(msg)
-
 		case cliente := <-h.register:
 			h.mutex.Lock()
 			h.Clientes[cliente] = true // guardamos la direccion del cliente en meemoria
@@ -56,7 +55,6 @@ func (h *Hub) run() {
 				Cuerpo:  message,
 			}
 		case message := <-h.Broadcast:
-
 			for cliente := range h.Clientes {
 				select {
 				case cliente.Send <- message: // corroboramos si el cliente tiene espacio para el mensaje  y so lo pudo enviar
@@ -68,6 +66,14 @@ func (h *Hub) run() {
 					delete(h.Clientes, cliente) // quitamos del registro de cliente
 					h.mutex.Unlock()
 				}
+			}
+		case cliente := <-h.unregister:
+			_, exists := h.Clientes[cliente]
+			if exists {
+				fmt.Println("Cliente " + cliente.Username + " removido")
+				h.mutex.Lock()
+				delete(h.Clientes, cliente)
+				h.mutex.Unlock()
 			}
 		}
 

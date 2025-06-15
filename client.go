@@ -15,8 +15,8 @@ type Cliente struct {
 // ReadMessages lee los mensajes enviados por el cliente (navegador web) al servidor (hub)
 func (c *Cliente) ReadMessages(hub *Hub) {
 	defer func() { // al salir de la rutina cerramos y informamos el hub
-		hub.register <- c // indicamos al hub que el cliente se desconecto
-		c.conn.Close()    // una vez terminado de leer los mesanjes, cerramos conexion
+		hub.unregister <- c // indicamos al hub que el cliente se desconecto
+		c.conn.Close()      // una vez terminado de leer los mesanjes, cerramos conexion
 	}()
 
 	for { // este loop va estar siempre disponible hasta que recibe un mensaje del cliente

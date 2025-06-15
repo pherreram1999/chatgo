@@ -21,7 +21,7 @@ func main() {
 	})
 
 	// recodar que cada conexion se manda llamar como goroutine
-	http.HandleFunc("/", func(writer http.ResponseWriter, request *http.Request) {
+	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
 		handleConnection(hub, writer, request)
 	})
 
