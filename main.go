@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	host := flag.String("host", ":8080", "host del servidor")
+	host := flag.String("host", ":8081", "host del servidor")
 	flag.Parse()
 
 	hub := newHub() //
