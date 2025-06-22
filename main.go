@@ -9,16 +9,16 @@ import (
 
 func main() {
 
-	host := flag.String("host", ":8081", "host del servidor")
+	host := flag.String("host", ":8080", "host del servidor")
 	flag.Parse()
 
 	hub := newHub() //
 
 	go hub.run() // lleva registro del lo goroutines
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello World")
-	})
+	fs := http.FileServer(http.Dir("./dist"))
+
+	http.Handle("/", fs)
 
 	// recodar que cada conexion se manda llamar como goroutine
 	http.HandleFunc("/ws", func(writer http.ResponseWriter, request *http.Request) {
