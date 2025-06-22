@@ -10,6 +10,7 @@ type Cliente struct {
 	Username string
 	conn     *websocket.Conn
 	Send     chan Mensaje
+	Color    string
 }
 
 // ReadMessages lee los mensajes enviados por el cliente (navegador web) al servidor (hub)
@@ -25,6 +26,9 @@ func (c *Cliente) ReadMessages(hub *Hub) {
 		if err != nil {
 			// hubo una desconexion, salimos de la rutina
 			break // aqui se rompe el ciclo, cierra la conexion al salir de la funcion
+		}
+		if message.Color == "" {
+			message.Color = c.Color
 		}
 
 		// renviamos el mensaje al resto de los clientes con un broadcast

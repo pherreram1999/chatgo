@@ -20,15 +20,17 @@ var upgrader = websocket.Upgrader{
 type Mensaje struct {
 	Usuario string `json:"usuario"`
 	Cuerpo  string `json:"cuerpo"`
+	Color   string `json:"color"`
 }
 
 func (m *Mensaje) String() string {
-	return fmt.Sprintf("<Usuario: %s |Mensaje %s>", m.Usuario, m.Cuerpo)
+	return fmt.Sprintf("<Usuario: %s |Mensaje %s |Color: %s", m.Usuario, m.Cuerpo, m.Color)
 }
 
 // Hub se encarga de llevar el reigstro de clientes, ademas de los clientes registrados
 type Hub struct {
 	Clientes   map[*Cliente]bool
+	usercolor  map[string]string
 	register   chan *Cliente
 	unregister chan *Cliente
 	Broadcast  chan Mensaje
@@ -38,6 +40,7 @@ type Hub struct {
 func newHub() *Hub {
 	return &Hub{
 		Clientes:   make(map[*Cliente]bool),
+		usercolor:  make(map[string]string),
 		register:   make(chan *Cliente),
 		unregister: make(chan *Cliente),
 		Broadcast:  make(chan Mensaje, 50),
@@ -51,6 +54,7 @@ func (h *Hub) run() {
 		case cliente := <-h.register:
 			h.mutex.Lock()
 			h.Clientes[cliente] = true // guardamos la direccion del cliente en memoria
+			h.usercolor[cliente.Username] = cliente.Color
 			h.mutex.Unlock()
 			// mensamos un mensaje a los demas que se conecto
 			message := fmt.Sprintf("Se ha conectado %s", cliente.Username)
@@ -61,6 +65,14 @@ func (h *Hub) run() {
 			}
 
 		case message := <-h.Broadcast:
+			h.mutex.RLock()
+			if message.Usuario != "" && message.Color == "" {
+				if storedColor, exists := h.usercolor[message.Usuario]; exists {
+					message.Color = storedColor
+				}
+			}
+			h.mutex.RUnlock()
+
 			for cliente := range h.Clientes {
 				select {
 				case cliente.Send <- message: // corroboramos si el cliente tiene espacio para el mensaje  y so lo pudo enviar
@@ -96,10 +108,17 @@ func handleConnection(hub *Hub, w http.ResponseWriter, r *http.Request) {
 		log.Println("Error al atualizar la peticion a websocket", err)
 	}
 
+	color := r.URL.Query().Get("color")
+
+	if color == "" {
+		color = "blue"
+	}
+
 	cliente := &Cliente{
 		Username: r.URL.Query().Get("username"),
 		conn:     conn,
 		Send:     make(chan Mensaje, 255),
+		Color:    color,
 	}
 
 	hub.register <- cliente // guardamos el cliente en la tabla de direcciones
